@@ -9,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@PrimaryKeyJoinColumn(name = "id")
 public class Patient extends User {
     // Inherits id from User - no need to redefine
     // PrimaryKeyJoinColumn defaults to "id" which matches our database schema
