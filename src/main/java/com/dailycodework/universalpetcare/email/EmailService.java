@@ -16,22 +16,27 @@ import java.util.Properties;
 public class EmailService {
     private JavaMailSender mailSender;
 
-
     @PostConstruct
     private void init() {
         mailSender = createMailSender();
     }
 
-    public void sendEmail(String to, String subject, String senderName, String mailContent) throws MessagingException, UnsupportedEncodingException {
+    public void sendEmail(String to, String subject, String senderName, String mailContent)
+            throws MessagingException, UnsupportedEncodingException {
         MimeMessage message = mailSender.createMimeMessage();
         var messageHelper = new MimeMessageHelper(message);
         messageHelper.setFrom(EmailProperties.DEFAULT_USERNAME, senderName);
         messageHelper.setTo(to);
         messageHelper.setSubject(subject);
         messageHelper.setText(mailContent, true);
-        mailSender.send(message);
+        // mailSender.send(message);
+        System.out.println("================= EMAIL MOCK =================");
+        System.out.println("To: " + to);
+        System.out.println("Subject: " + subject);
+        System.out.println("Content: " + mailContent);
+        System.out.println("==============================================");
     }
-    
+
     private JavaMailSender createMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(EmailProperties.DEFAULT_HOST);
