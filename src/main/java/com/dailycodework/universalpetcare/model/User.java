@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,7 +32,7 @@ public class User {
     private boolean isEnabled;
 
     @CreationTimestamp
-    private LocalDate  createdAt;
+    private LocalDateTime createdAt;
     @Transient
     private String specialization;
     @Transient
