@@ -20,6 +20,7 @@ public class PatientFactory {
         Patient patient = new Patient();
         patient.setRoles(roleService.setUserRole("PATIENT"));
         userAttributesMapper.setCommonAttributes(request, patient);
+        patient.setEnabled(true);
         return patientRepository.save(patient);
     }
 }
