@@ -45,7 +45,12 @@ public class User {
                                                     CascadeType.PERSIST, CascadeType.REFRESH})
     @JoinTable(name ="user_roles",
             joinColumns = @JoinColumn(name="user_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name="role_id", referencedColumnName = "id"))
+            inverseJoinColumns = @JoinColumn(name="role_id", referencedColumnName = "id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"}),
+            indexes = {
+                @Index(name = "idx_user_roles_user", columnList = "user_id"),
+                @Index(name = "idx_user_roles_role", columnList = "role_id")
+            })
     private  Collection<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
