@@ -10,7 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@PrimaryKeyJoinColumn(name = "adm_id")
 public class Admin extends User{
     // Inherits id from User - no need to redefine
+    // PrimaryKeyJoinColumn defaults to "id" which matches our database schema
 }

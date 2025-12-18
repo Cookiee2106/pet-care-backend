@@ -1,7 +1,6 @@
 package com.dailycodework.universalpetcare.model;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.PrimaryKeyJoinColumn;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,9 +9,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@PrimaryKeyJoinColumn(name = "vet_id")
 public class Veterinarian extends User {
     // Inherits id from User - no need to redefine
+    // PrimaryKeyJoinColumn defaults to "id" which matches our database schema
     private String specialization;
 
     public Veterinarian(String specialization) {
