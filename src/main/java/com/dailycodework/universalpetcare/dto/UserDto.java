@@ -10,7 +10,7 @@ import java.util.Set;
 
 @Data
 public class UserDto {
-    private  Long id;
+    private Long id;
     private String firstName;
     private String lastName;
     private String gender;
@@ -19,6 +19,7 @@ public class UserDto {
     private String userType;
     private boolean isEnabled;
     private String specialization;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate createdAt;
     private List<AppointmentDto> appointments;
     private List<ReviewDto> reviews;
