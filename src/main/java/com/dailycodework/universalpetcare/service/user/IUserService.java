@@ -18,7 +18,6 @@ public interface IUserService {
 
     void delete(Long userId);
 
-
     List<UserDto> getAllUsers();
 
     UserDto getUserWithDetails(Long userId) throws SQLException;
@@ -29,10 +28,13 @@ public interface IUserService {
 
     long countAllUsers();
 
-    Map<String, Map<String,Long>> aggregateUsersByMonthAndType();
-
-
+    Map<String, Map<String, Long>> aggregateUsersByMonthAndType();
 
     Map<String, Map<String, Long>> aggregateUsersByEnabledStatusAndType();
 
+    void lockUserAccount(Long userId);
+
+    void unLockUserAccount(Long userId);
+
+    List<UserDto> searchUsers(String keyword, String role);
 }

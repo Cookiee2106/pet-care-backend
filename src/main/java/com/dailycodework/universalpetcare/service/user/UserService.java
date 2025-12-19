@@ -47,7 +47,6 @@ public class UserService implements IUserService {
     private final ReviewRepository reviewRepository;
     private final AppointmentRepository appointmentRepository;
 
-
     @Override
     public User register(RegistrationRequest request) {
         return userFactory.createUser(request);
@@ -85,29 +84,34 @@ public class UserService implements IUserService {
                 });
     }
 
-
     @Override
     public List<UserDto> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
                 .map(user -> entityConverter.mapEntityToDto(user, UserDto.class))
                 .collect(Collectors.toList());
+    }
 
+    @Override
+    public List<UserDto> searchUsers(String keyword, String role) {
+        List<User> users = userRepository.searchUsers(keyword, role);
+        return users.stream()
+                .map(user -> entityConverter.mapEntityToDto(user, UserDto.class))
+                .collect(Collectors.toList());
     }
 
     @Override
     public UserDto getUserWithDetails(Long userId) throws SQLException {
-        //1. get the user
+        // 1. get the user
         User user = findById(userId);
-        //2. convert the user to a userDto
+        // 2. convert the user to a userDto
         UserDto userDto = entityConverter.mapEntityToDto(user, UserDto.class);
 
         userDto.setTotalReviewers(reviewRepository.countByVeterinarianId(userId));
 
-
-        //3. get user appointments ( users ( patient and a vet))
+        // 3. get user appointments ( users ( patient and a vet))
         setUserAppointment(userDto);
-        //.4 get users photo
+        // .4 get users photo
         setUserPhoto(userDto, user);
         setUserReviews(userDto, userId);
         return userDto;
@@ -124,7 +128,6 @@ public class UserService implements IUserService {
             userDto.setPhoto(photoService.getImageData(user.getPhoto().getId()));
         }
     }
-
 
     private void setUserReviews(UserDto userDto, Long userId) {
         Page<Review> reviewPage = reviewService.findAllReviewsByUserId(userId, 0, Integer.MAX_VALUE);
@@ -151,7 +154,8 @@ public class UserService implements IUserService {
     private void mapVeterinarianInfo(ReviewDto reviewDto, Review review) {
         if (review.getVeterinarian() != null) {
             reviewDto.setVeterinarianId(review.getVeterinarian().getId());
-            reviewDto.setVeterinarianName(review.getVeterinarian().getFirstName() + " " + review.getVeterinarian().getLastName());
+            reviewDto.setVeterinarianName(
+                    review.getVeterinarian().getFirstName() + " " + review.getVeterinarian().getLastName());
             // set the photo
             setVeterinarianPhoto(reviewDto, review);
         }
@@ -206,28 +210,26 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public Map<String, Map<String,Long>> aggregateUsersByMonthAndType(){
+    public Map<String, Map<String, Long>> aggregateUsersByMonthAndType() {
         List<User> users = userRepository.findAll();
         return users.stream().collect(Collectors.groupingBy(user -> Month.of(user.getCreatedAt().getMonthValue())
                 .getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                Collectors.groupingBy(User ::getUserType, Collectors.counting())));
+                Collectors.groupingBy(User::getUserType, Collectors.counting())));
     }
 
     @Override
-    public Map<String, Map<String, Long>> aggregateUsersByEnabledStatusAndType(){
+    public Map<String, Map<String, Long>> aggregateUsersByEnabledStatusAndType() {
         List<User> users = userRepository.findAll();
         return users.stream()
-                .collect(Collectors.groupingBy(user ->  user.isEnabled() ? "Enabled" : "Non-Enabled",
-                        Collectors.groupingBy(User ::getUserType, Collectors.counting())));
+                .collect(Collectors.groupingBy(user -> user.isEnabled() ? "Enabled" : "Non-Enabled",
+                        Collectors.groupingBy(User::getUserType, Collectors.counting())));
     }
 
-    public void lockUserAccount(Long userId){
+    public void lockUserAccount(Long userId) {
         userRepository.updateUserEnabledStatus(userId, false);
     }
 
-    public void unLockUserAccount(Long userId){
+    public void unLockUserAccount(Long userId) {
         userRepository.updateUserEnabledStatus(userId, true);
     }
 }
-
-
