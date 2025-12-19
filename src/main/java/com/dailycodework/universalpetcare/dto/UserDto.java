@@ -20,7 +20,7 @@ public class UserDto {
     private boolean isEnabled;
     private String specialization;
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate createdAt;
+    private java.time.LocalDateTime createdAt;
     private List<AppointmentDto> appointments;
     private List<ReviewDto> reviews;
     private long photoId;
