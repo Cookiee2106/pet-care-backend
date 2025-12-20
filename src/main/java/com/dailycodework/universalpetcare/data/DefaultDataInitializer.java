@@ -25,35 +25,39 @@ import java.util.Set;
 public class DefaultDataInitializer implements ApplicationListener<ApplicationReadyEvent> {
     private final UserRepository userRepository;
     private final VeterinarianRepository veterinarianRepository;
-   private final PatientRepository patientRepository;
+    private final PatientRepository patientRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AdminRepository adminRepository;
     private final RoleService roleService;
 
-
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-          Set<String> defaultRoles =  Set.of("ROLE_ADMIN", "ROLE_PATIENT", "ROLE_VET");
+        Set<String> defaultRoles = Set.of("ROLE_ADMIN", "ROLE_PATIENT", "ROLE_VET");
         createDefaultRoleIfNotExits(defaultRoles);
 
         createDefaultAdminIfNotExists();
-       createDefaultVetIfNotExits();
-       createDefaultPatientIfNotExits();
+        createDefaultVetIfNotExits();
+        createDefaultPatientIfNotExits();
     }
 
-    private void createDefaultVetIfNotExits(){
+    private void createDefaultVetIfNotExits() {
         Role vetRole = roleService.getRoleByName("ROLE_VET");
-        for (int i = 1; i<=10; i++){
-            String defaultEmail = "vet"+i+"@gmail.com";
+        for (int i = 1; i <= 10; i++) {
+            String defaultEmail = "vet" + i + "@gmail.com";
             var existingVet = userRepository.findByEmail(defaultEmail);
-            if (existingVet.isPresent()){
-                // Update roles if vet exists but has no roles
-                Veterinarian vet = (Veterinarian) existingVet.get();
-                if (vet.getRoles() == null || vet.getRoles().isEmpty()) {
-                    vet.setRoles(new HashSet<>(Collections.singletonList(vetRole)));
-                    veterinarianRepository.save(vet);
-                    System.out.println("Updated vet user " + i + " with roles.");
+            if (existingVet.isPresent()) {
+                if (existingVet.get() instanceof Veterinarian) {
+                    // Update roles if vet exists but has no roles
+                    Veterinarian vet = (Veterinarian) existingVet.get();
+                    if (vet.getRoles() == null || vet.getRoles().isEmpty()) {
+                        vet.setRoles(new HashSet<>(Collections.singletonList(vetRole)));
+                        veterinarianRepository.save(vet);
+                        System.out.println("Updated vet user " + i + " with roles.");
+                    }
+                } else {
+                    System.out.println("User " + defaultEmail
+                            + " exists but is not a Veterinarian. Skipping default vet creation.");
                 }
                 continue;
             }
@@ -63,7 +67,7 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
             vet.setGender("Chưa xác định");
             vet.setPhoneNumber("1234567890");
             vet.setEmail(defaultEmail);
-            vet.setPassword(passwordEncoder.encode("password"+i));
+            vet.setPassword(passwordEncoder.encode("password" + i));
             vet.setUserType("VET");
             vet.setRoles(new HashSet<>(Collections.singletonList(vetRole)));
             vet.setSpecialization("Da liễu");
@@ -73,19 +77,23 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
         }
     }
 
-
-    private void createDefaultPatientIfNotExits(){
-        Role patientRole =  roleService.getRoleByName("ROLE_PATIENT");
-        for (int i = 1; i<=10; i++){
-            String defaultEmail = "pat"+i+"@gmail.com";
+    private void createDefaultPatientIfNotExits() {
+        Role patientRole = roleService.getRoleByName("ROLE_PATIENT");
+        for (int i = 1; i <= 10; i++) {
+            String defaultEmail = "pat" + i + "@gmail.com";
             var existingPatient = userRepository.findByEmail(defaultEmail);
-            if (existingPatient.isPresent()){
-                // Update roles if patient exists but has no roles
-                Patient pat = (Patient) existingPatient.get();
-                if (pat.getRoles() == null || pat.getRoles().isEmpty()) {
-                    pat.setRoles(new HashSet<>(Collections.singletonList(patientRole)));
-                    patientRepository.save(pat);
-                    System.out.println("Updated patient user " + i + " with roles.");
+            if (existingPatient.isPresent()) {
+                if (existingPatient.get() instanceof Patient) {
+                    // Update roles if patient exists but has no roles
+                    Patient pat = (Patient) existingPatient.get();
+                    if (pat.getRoles() == null || pat.getRoles().isEmpty()) {
+                        pat.setRoles(new HashSet<>(Collections.singletonList(patientRole)));
+                        patientRepository.save(pat);
+                        System.out.println("Updated patient user " + i + " with roles.");
+                    }
+                } else {
+                    System.out.println("User " + defaultEmail
+                            + " exists but is not a Patient. Skipping default patient creation.");
                 }
                 continue;
             }
@@ -95,7 +103,7 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
             pat.setGender("Chưa xác định");
             pat.setPhoneNumber("1234567890");
             pat.setEmail(defaultEmail);
-            pat.setPassword(passwordEncoder.encode("password"+i));
+            pat.setPassword(passwordEncoder.encode("password" + i));
             pat.setUserType("PATIENT");
             pat.setRoles(new HashSet<>(Collections.singletonList(patientRole)));
             Patient thePatient = patientRepository.save(pat);
@@ -104,7 +112,6 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
         }
     }
 
-
     private void createDefaultAdminIfNotExists() {
         Role adminRole = roleService.getRoleByName("ROLE_ADMIN");
         final String defaultAdminEmail = "admin@email.com";
@@ -112,11 +119,17 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
         var existingAdmin = userRepository.findByEmail(defaultAdminEmail);
         if (existingAdmin.isPresent()) {
             // Update roles if admin exists but has no roles
-            Admin admin = (Admin) existingAdmin.get();
-            if (admin.getRoles() == null || admin.getRoles().isEmpty()) {
-                admin.setRoles(new HashSet<>(Collections.singletonList(adminRole)));
-                adminRepository.save(admin);
-                System.out.println("Updated admin user with roles.");
+            if (existingAdmin.get() instanceof Admin) {
+                // Update roles if admin exists but has no roles
+                Admin admin = (Admin) existingAdmin.get();
+                if (admin.getRoles() == null || admin.getRoles().isEmpty()) {
+                    admin.setRoles(new HashSet<>(Collections.singletonList(adminRole)));
+                    adminRepository.save(admin);
+                    System.out.println("Updated admin user with roles.");
+                }
+            } else {
+                System.out.println("User with email " + defaultAdminEmail
+                        + " exists but is not an Admin. Skipping default admin creation.");
             }
             return;
         }
@@ -135,11 +148,10 @@ public class DefaultDataInitializer implements ApplicationListener<ApplicationRe
         System.out.println("Default admin user created successfully.");
     }
 
-
-    private void createDefaultRoleIfNotExits(Set<String> roles){
+    private void createDefaultRoleIfNotExits(Set<String> roles) {
         roles.stream()
                 .filter(role -> roleRepository.findByName(role).isEmpty())
-                .map(Role :: new).forEach(roleRepository::save);
+                .map(Role::new).forEach(roleRepository::save);
 
     }
 }

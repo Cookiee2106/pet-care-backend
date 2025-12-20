@@ -21,10 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 @Service
 @RequiredArgsConstructor
-public class VeterinarianService implements IVeterinarianService  {
+public class VeterinarianService implements IVeterinarianService {
     private final VeterinarianRepository veterinarianRepository;
     private final EntityConverter<Veterinarian, UserDto> entityConverter;
     private final ReviewService reviewService;
@@ -33,14 +32,13 @@ public class VeterinarianService implements IVeterinarianService  {
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
 
-
     @Override
-    public List<UserDto> getAllVeterinariansWithDetails(){
-           List<Veterinarian> veterinarians = userRepository.findAllByUserType("VET");
-           return veterinarians.stream()
-                   .map(this ::mapVeterinarianToUserDto)
-                   .toList();
-       }
+    public List<UserDto> getAllVeterinariansWithDetails() {
+        List<Veterinarian> veterinarians = userRepository.findAllByUserType("VET");
+        return veterinarians.stream()
+                .map(this::mapVeterinarianToUserDto)
+                .toList();
+    }
 
     @Override
     public List<String> getSpecializations() {
@@ -48,22 +46,21 @@ public class VeterinarianService implements IVeterinarianService  {
     }
 
     @Override
-    public List<UserDto> findAvailableVetsForAppointment(String specialization, LocalDate date, LocalTime time){
+    public List<UserDto> findAvailableVetsForAppointment(String specialization, LocalDate date, LocalTime time) {
         List<Veterinarian> filteredVets = getAvailableVeterinarians(specialization, date, time);
-        return  filteredVets.stream()
-                .map(this ::mapVeterinarianToUserDto)
+        return filteredVets.stream()
+                .map(this::mapVeterinarianToUserDto)
                 .toList();
     }
 
     @Override
     public List<Veterinarian> getVeterinariansBySpecialization(String specialization) {
-        if(!veterinarianRepository.existsBySpecialization(specialization)){
-            throw new ResourceNotFoundException("No veterinarian found with" +specialization +" in the system");
+        if (!veterinarianRepository.existsBySpecialization(specialization)) {
+            throw new ResourceNotFoundException("No veterinarian found with" + specialization + " in the system");
         }
         return veterinarianRepository.findBySpecialization(specialization);
 
     }
-
 
     private UserDto mapVeterinarianToUserDto(Veterinarian veterinarian) {
         UserDto userDto = entityConverter.mapEntityToDto(veterinarian, UserDto.class);
@@ -71,11 +68,11 @@ public class VeterinarianService implements IVeterinarianService  {
         Long totalReviewer = reviewRepository.countByVeterinarianId(veterinarian.getId());
         userDto.setAverageRating(averageRating);
         userDto.setTotalReviewers(totalReviewer);
-        if(veterinarian.getPhoto() != null){
+        if (veterinarian.getPhoto() != null) {
             try {
                 byte[] photoBytes = photoService.getImageData(veterinarian.getPhoto().getId());
                 userDto.setPhoto(photoBytes);
-            } catch (SQLException e){
+            } catch (SQLException e) {
                 throw new RuntimeException(e.getMessage());
             }
         }
@@ -83,26 +80,32 @@ public class VeterinarianService implements IVeterinarianService  {
         return userDto;
     }
 
-
-    private List<Veterinarian> getAvailableVeterinarians(String specialization, LocalDate date, LocalTime time){
-        List<Veterinarian> veterinarians = getVeterinariansBySpecialization(specialization);
+    private List<Veterinarian> getAvailableVeterinarians(String specialization, LocalDate date, LocalTime time) {
+        List<Veterinarian> veterinarians;
+        if (specialization == null || specialization.isEmpty()) {
+            veterinarians = veterinarianRepository.findAll();
+        } else {
+            veterinarians = getVeterinariansBySpecialization(specialization);
+        }
         return veterinarians.stream()
                 .filter(vet -> isVetAvailable(vet, date, time))
                 .toList();
 
     }
 
-      private boolean isVetAvailable(Veterinarian veterinarian, LocalDate requestedDate, LocalTime requestedTime){
-          if(requestedDate != null && requestedTime != null){
-              LocalTime requestedEndTime = requestedTime.plusHours(2);
-              return appointmentRepository.findByVeterinarianAndAppointmentDate(veterinarian, requestedDate)
-                      .stream()
-                      .noneMatch(existingAppointment -> doesAppointmentOverLap(existingAppointment, requestedTime, requestedEndTime));
-          }
-          return true;
-      }
+    private boolean isVetAvailable(Veterinarian veterinarian, LocalDate requestedDate, LocalTime requestedTime) {
+        if (requestedDate != null && requestedTime != null) {
+            LocalTime requestedEndTime = requestedTime.plusHours(2);
+            return appointmentRepository.findByVeterinarianAndAppointmentDate(veterinarian, requestedDate)
+                    .stream()
+                    .noneMatch(existingAppointment -> doesAppointmentOverLap(existingAppointment, requestedTime,
+                            requestedEndTime));
+        }
+        return true;
+    }
 
-    private boolean doesAppointmentOverLap(Appointment existingAppointment, LocalTime requestedStartTime, LocalTime requestedEndTime){
+    private boolean doesAppointmentOverLap(Appointment existingAppointment, LocalTime requestedStartTime,
+            LocalTime requestedEndTime) {
         LocalTime existingStartTime = existingAppointment.getAppointmentTime();
         LocalTime existingEndTime = existingStartTime.plusHours(2);
         LocalTime unavailableStartTime = existingStartTime.minusHours(1);
@@ -111,7 +114,7 @@ public class VeterinarianService implements IVeterinarianService  {
     }
 
     @Override
-    public   List<Map<String, Object>> aggregateVetsBySpecialization(){
+    public List<Map<String, Object>> aggregateVetsBySpecialization() {
         List<Object[]> results = veterinarianRepository.countVetsBySpecialization();
         return results.stream()
                 .map(result -> Map.of("specialization", result[0], "count", result[1]))

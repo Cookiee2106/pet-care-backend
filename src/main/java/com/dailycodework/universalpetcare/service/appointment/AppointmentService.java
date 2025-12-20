@@ -53,6 +53,29 @@ public class AppointmentService implements IAppointmentService {
             appointment.addVeterinarian(recipient.get());
             appointment.setAppointmentNo();
             appointment.setStatus(AppointmentStatus.WAITING_FOR_APPROVAL);
+
+            // Validate Appointment Date and Time
+            java.time.ZoneId vietnamZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+            LocalDate currentDate = LocalDate.now(vietnamZone);
+            LocalTime currentTime = LocalTime.now(vietnamZone);
+            LocalDate appointmentDate = appointment.getAppointmentDate();
+            LocalTime appointmentTime = appointment.getAppointmentTime();
+
+            if (appointmentDate.isBefore(currentDate)) {
+                throw new IllegalArgumentException("Không thể đặt lịch hẹn trong quá khứ.");
+            }
+            if (appointmentDate.equals(currentDate) && appointmentTime.isBefore(currentTime)) {
+                throw new IllegalArgumentException("Không thể đặt lịch hẹn cho thời gian đã qua.");
+            }
+
+            LocalTime startTime = LocalTime.of(8, 0);
+            LocalTime endTime = LocalTime.of(18, 0);
+
+            if (appointmentTime.isBefore(startTime) || appointmentTime.isAfter(endTime)) {
+                throw new IllegalArgumentException(
+                        "Lịch hẹn chỉ được phép trong khoảng thời gian từ 08:00 sáng đến 18:00 tối.");
+            }
+
             return appointmentRepository.save(appointment);
         }
         throw new ResourceNotFoundException(FeedBackMessage.SENDER_RECIPIENT_NOT_FOUND);
