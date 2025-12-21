@@ -56,7 +56,7 @@ public class VeterinarianService implements IVeterinarianService {
     @Override
     public List<Veterinarian> getVeterinariansBySpecialization(String specialization) {
         if (!veterinarianRepository.existsBySpecialization(specialization)) {
-            throw new ResourceNotFoundException("No veterinarian found with" + specialization + " in the system");
+            throw new ResourceNotFoundException("Không tìm thấy bác sĩ thú y nào với chuyên khoa " + specialization);
         }
         return veterinarianRepository.findBySpecialization(specialization);
 
