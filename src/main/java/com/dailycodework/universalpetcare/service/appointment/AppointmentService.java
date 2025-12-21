@@ -62,18 +62,17 @@ public class AppointmentService implements IAppointmentService {
             LocalTime appointmentTime = appointment.getAppointmentTime();
 
             if (appointmentDate.isBefore(currentDate)) {
-                throw new IllegalArgumentException("Không thể đặt lịch hẹn trong quá khứ.");
+                throw new IllegalArgumentException(FeedBackMessage.INVALID_APPOINTMENT_DATE);
             }
             if (appointmentDate.equals(currentDate) && appointmentTime.isBefore(currentTime)) {
-                throw new IllegalArgumentException("Không thể đặt lịch hẹn cho thời gian đã qua.");
+                throw new IllegalArgumentException(FeedBackMessage.INVALID_APPOINTMENT_TIME);
             }
 
             LocalTime startTime = LocalTime.of(8, 0);
             LocalTime endTime = LocalTime.of(18, 0);
 
             if (appointmentTime.isBefore(startTime) || appointmentTime.isAfter(endTime)) {
-                throw new IllegalArgumentException(
-                        "Lịch hẹn chỉ được phép trong khoảng thời gian từ 08:00 sáng đến 18:00 tối.");
+                throw new IllegalArgumentException(FeedBackMessage.INVALID_APPOINTMENT_HOURS);
             }
 
             return appointmentRepository.save(appointment);
