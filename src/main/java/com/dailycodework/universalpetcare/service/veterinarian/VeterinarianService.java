@@ -109,8 +109,8 @@ public class VeterinarianService implements IVeterinarianService {
         LocalTime existingStartTime = existingAppointment.getAppointmentTime();
         LocalTime existingEndTime = existingStartTime.plusHours(2);
         LocalTime unavailableStartTime = existingStartTime.minusHours(1);
-        LocalTime unavailableEndTime = existingEndTime.plusMinutes(170);
-        return !requestedStartTime.isBefore(unavailableStartTime) && !requestedEndTime.isAfter(unavailableEndTime);
+        LocalTime unavailableEndTime = existingEndTime.plusMinutes(40);
+        return requestedStartTime.isBefore(unavailableEndTime) && requestedEndTime.isAfter(unavailableStartTime);
     }
 
     @Override
