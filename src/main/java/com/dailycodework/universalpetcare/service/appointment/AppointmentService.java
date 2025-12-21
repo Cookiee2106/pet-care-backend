@@ -149,7 +149,7 @@ public class AppointmentService implements IAppointmentService {
                 .map(appointment -> {
                     appointment.setStatus(AppointmentStatus.APPROVED);
                     return appointmentRepository.saveAndFlush(appointment);
-                }).orElseThrow(() -> new IllegalStateException(FeedBackMessage.OPERATION_NOT_ALLOWED));
+                }).orElseThrow(() -> new IllegalStateException(FeedBackMessage.ACTION_NOT_ALLOWED));
 
     }
 
@@ -160,7 +160,7 @@ public class AppointmentService implements IAppointmentService {
                 .map(appointment -> {
                     appointment.setStatus(AppointmentStatus.NOT_APPROVED);
                     return appointmentRepository.saveAndFlush(appointment);
-                }).orElseThrow(() -> new IllegalStateException(FeedBackMessage.OPERATION_NOT_ALLOWED));
+                }).orElseThrow(() -> new IllegalStateException(FeedBackMessage.ACTION_NOT_ALLOWED));
 
     }
 

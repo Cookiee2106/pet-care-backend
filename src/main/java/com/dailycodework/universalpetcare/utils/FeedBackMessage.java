@@ -44,7 +44,7 @@ public class FeedBackMessage {
     public static final String APPOINTMENT_FOUND = "Tìm thấy lịch hẹn";
     public static final String APPOINTMENT_NOT_FOUND = "Không tìm thấy lịch hẹn";
     public static final String APPOINTMENT_UPDATE_NOT_ALLOWED = "Không thể cập nhật hoặc hủy lịch hẹn";
-    public static final String OPERATIONS_NOT_ALLOWED = "Thao tác không được cho phép";
+    public static final String ACTION_NOT_ALLOWED = "Thao tác không được cho phép";
     public static final String INVALID_APPOINTMENT_DATE = "Không thể đặt lịch hẹn trong quá khứ.";
     public static final String INVALID_APPOINTMENT_TIME = "Không thể đặt lịch hẹn cho thời gian đã qua.";
     public static final String INVALID_APPOINTMENT_HOURS = "Lịch hẹn chỉ được phép trong khoảng thời gian từ 08:00 sáng đến 18:00 tối.";
