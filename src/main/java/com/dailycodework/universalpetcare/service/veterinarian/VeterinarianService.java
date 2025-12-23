@@ -3,18 +3,14 @@ package com.dailycodework.universalpetcare.service.veterinarian;
 import com.dailycodework.universalpetcare.dto.EntityConverter;
 import com.dailycodework.universalpetcare.dto.UserDto;
 import com.dailycodework.universalpetcare.exception.ResourceNotFoundException;
-import com.dailycodework.universalpetcare.model.Appointment;
 import com.dailycodework.universalpetcare.model.Veterinarian;
-import com.dailycodework.universalpetcare.repository.AppointmentRepository;
 import com.dailycodework.universalpetcare.repository.ReviewRepository;
 import com.dailycodework.universalpetcare.repository.UserRepository;
 import com.dailycodework.universalpetcare.repository.VeterinarianRepository;
-import com.dailycodework.universalpetcare.service.photo.PhotoService;
 import com.dailycodework.universalpetcare.service.review.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -28,9 +24,7 @@ public class VeterinarianService implements IVeterinarianService {
     private final EntityConverter<Veterinarian, UserDto> entityConverter;
     private final ReviewService reviewService;
     private final ReviewRepository reviewRepository;
-    private final PhotoService photoService;
     private final UserRepository userRepository;
-    private final AppointmentRepository appointmentRepository;
 
     @Override
     public List<UserDto> getAllVeterinariansWithDetails() {
@@ -68,50 +62,43 @@ public class VeterinarianService implements IVeterinarianService {
         Long totalReviewer = reviewRepository.countByVeterinarianId(veterinarian.getId());
         userDto.setAverageRating(averageRating);
         userDto.setTotalReviewers(totalReviewer);
+
+        // OPTIMIZATION: Do NOT load full photo bytes for list view.
+        // Frontend should fetch by ID or URL.
         if (veterinarian.getPhoto() != null) {
-            try {
-                byte[] photoBytes = photoService.getImageData(veterinarian.getPhoto().getId());
-                userDto.setPhoto(photoBytes);
-            } catch (SQLException e) {
-                throw new RuntimeException(e.getMessage());
-            }
+            userDto.setPhotoId(veterinarian.getPhoto().getId());
+            // try {
+            // byte[] photoBytes =
+            // photoService.getImageData(veterinarian.getPhoto().getId());
+            // userDto.setPhoto(photoBytes);
+            // } catch (SQLException e) {
+            // throw new RuntimeException(e.getMessage());
+            // }
         }
 
         return userDto;
     }
 
     private List<Veterinarian> getAvailableVeterinarians(String specialization, LocalDate date, LocalTime time) {
-        List<Veterinarian> veterinarians;
+        if (date != null && time != null) {
+            LocalTime endTime = time.plusHours(2);
+            if (specialization == null || specialization.isEmpty()) {
+                return veterinarianRepository.findAllAvailableVeterinarians(date, time, endTime);
+            } else {
+                return veterinarianRepository.findAvailableVeterinarians(specialization, date, time, endTime);
+            }
+        }
+        // Fallback or if date/time not provided, just return vets by specialization or
+        // all
         if (specialization == null || specialization.isEmpty()) {
-            veterinarians = veterinarianRepository.findAll();
+            return veterinarianRepository.findAll();
         } else {
-            veterinarians = getVeterinariansBySpecialization(specialization);
+            return getVeterinariansBySpecialization(specialization);
         }
-        return veterinarians.stream()
-                .filter(vet -> isVetAvailable(vet, date, time))
-                .toList();
-
     }
 
-    private boolean isVetAvailable(Veterinarian veterinarian, LocalDate requestedDate, LocalTime requestedTime) {
-        if (requestedDate != null && requestedTime != null) {
-            LocalTime requestedEndTime = requestedTime.plusHours(2);
-            return appointmentRepository.findByVeterinarianAndAppointmentDate(veterinarian, requestedDate)
-                    .stream()
-                    .noneMatch(existingAppointment -> doesAppointmentOverLap(existingAppointment, requestedTime,
-                            requestedEndTime));
-        }
-        return true;
-    }
-
-    private boolean doesAppointmentOverLap(Appointment existingAppointment, LocalTime requestedStartTime,
-            LocalTime requestedEndTime) {
-        LocalTime existingStartTime = existingAppointment.getAppointmentTime();
-        LocalTime existingEndTime = existingStartTime.plusHours(2);
-        LocalTime unavailableStartTime = existingStartTime.minusHours(1);
-        LocalTime unavailableEndTime = existingEndTime.plusMinutes(40);
-        return requestedStartTime.isBefore(unavailableEndTime) && requestedEndTime.isAfter(unavailableStartTime);
-    }
+    // OPTIMIZATION: Removed isVetAvailable and doesAppointmentOverLap as logic is
+    // moved to DB query
 
     @Override
     public List<Map<String, Object>> aggregateVetsBySpecialization() {

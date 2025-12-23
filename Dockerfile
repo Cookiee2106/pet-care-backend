@@ -37,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/actuator/health || exit 1
 
 # Run application
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-Xmx350m", "-Xms350m", "-jar", "/app/app.jar"]
