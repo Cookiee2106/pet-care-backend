@@ -36,17 +36,15 @@ public class PhotoController {
     }
 
     @GetMapping(value = UrlMapping.GET_PHOTO_BY_ID)
-    public ResponseEntity<ApiResponse> getPhotoById(@PathVariable Long photoId) {
-        try {
-            Photo photo = photoService.getPhotoById(photoId);
-            if (photo != null) {
-                byte[] photoBytes = photoService.getImageData(photo.getId());
-                return ResponseEntity.ok(new ApiResponse(FeedBackMessage.RESOURCE_FOUND, photoBytes));
-            }
-        } catch (ResourceNotFoundException | SQLException e) {
-            return ResponseEntity.status(NOT_FOUND).body(new ApiResponse(e.getMessage(), null));
+    public ResponseEntity<byte[]> getPhotoById(@PathVariable Long photoId) throws SQLException {
+        Photo photo = photoService.getPhotoById(photoId);
+        if (photo != null) {
+            byte[] photoBytes = photoService.getImageData(photo.getId());
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.parseMediaType(photo.getFileType()))
+                    .body(photoBytes);
         }
-        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(null, NOT_FOUND));
+        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping(UrlMapping.DELETE_PHOTO)
@@ -63,9 +61,9 @@ public class PhotoController {
         return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new ApiResponse(null, INTERNAL_SERVER_ERROR));
     }
 
-
     @PutMapping(UrlMapping.UPDATE_PHOTO)
-    public ResponseEntity<ApiResponse> updatePhoto(@PathVariable Long photoId, @RequestBody MultipartFile file) throws SQLException {
+    public ResponseEntity<ApiResponse> updatePhoto(@PathVariable Long photoId, @RequestBody MultipartFile file)
+            throws SQLException {
         try {
             Photo photo = photoService.getPhotoById(photoId);
             if (photo != null) {
