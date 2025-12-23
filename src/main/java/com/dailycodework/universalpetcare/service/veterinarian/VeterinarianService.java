@@ -82,10 +82,13 @@ public class VeterinarianService implements IVeterinarianService {
     private List<Veterinarian> getAvailableVeterinarians(String specialization, LocalDate date, LocalTime time) {
         if (date != null && time != null) {
             LocalTime endTime = time.plusHours(2);
+            LocalTime minTime = calculateMinTime(time);
+            LocalTime maxTime = calculateMaxTime(endTime);
+
             if (specialization == null || specialization.isEmpty()) {
-                return veterinarianRepository.findAllAvailableVeterinarians(date, time, endTime);
+                return veterinarianRepository.findAllAvailableVeterinarians(date, minTime, maxTime);
             } else {
-                return veterinarianRepository.findAvailableVeterinarians(specialization, date, time, endTime);
+                return veterinarianRepository.findAvailableVeterinarians(specialization, date, minTime, maxTime);
             }
         }
         // Fallback or if date/time not provided, just return vets by specialization or
@@ -95,6 +98,27 @@ public class VeterinarianService implements IVeterinarianService {
         } else {
             return getVeterinariansBySpecialization(specialization);
         }
+    }
+
+    private LocalTime calculateMinTime(LocalTime reqStartTime) {
+        // reqStartTime - 2h 40m
+        LocalTime minTime = reqStartTime.minusHours(2).minusMinutes(40);
+        // If minTime > reqStartTime (wrapped around midnight to yesterday), clamp to
+        // 00:00
+        if (minTime.isAfter(reqStartTime)) {
+            return LocalTime.MIN; // 00:00
+        }
+        return minTime;
+    }
+
+    private LocalTime calculateMaxTime(LocalTime reqEndTime) {
+        // reqEndTime + 1h
+        LocalTime maxTime = reqEndTime.plusHours(1);
+        // If maxTime < reqEndTime (wrapped around midnight to tomorrow), clamp to MAX
+        if (maxTime.isBefore(reqEndTime)) {
+            return LocalTime.MAX; // 23:59:59.999
+        }
+        return maxTime;
     }
 
     // OPTIMIZATION: Removed isVetAvailable and doesAppointmentOverLap as logic is

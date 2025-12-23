@@ -24,21 +24,21 @@ public interface VeterinarianRepository extends JpaRepository<Veterinarian, Long
                         "AND v.id NOT IN (" +
                         "  SELECT a.veterinarian.id FROM Appointment a " +
                         "  WHERE a.appointmentDate = :date " +
-                        "  AND a.appointmentTime < ADDTIME(:endTime, '01:00:00') " +
-                        "  AND a.appointmentTime > SUBTIME(:startTime, '02:40:00')" +
+                        "  AND a.appointmentTime < :maxTime " +
+                        "  AND a.appointmentTime > :minTime" +
                         ")")
         List<Veterinarian> findAvailableVeterinarians(@Param("specialization") String specialization,
                         @Param("date") LocalDate date,
-                        @Param("startTime") LocalTime startTime,
-                        @Param("endTime") LocalTime endTime);
+                        @Param("minTime") LocalTime minTime,
+                        @Param("maxTime") LocalTime maxTime);
 
         @Query("SELECT v FROM Veterinarian v WHERE v.id NOT IN (" +
                         "  SELECT a.veterinarian.id FROM Appointment a " +
                         "  WHERE a.appointmentDate = :date " +
-                        "  AND a.appointmentTime < ADDTIME(:endTime, '01:00:00') " +
-                        "  AND a.appointmentTime > SUBTIME(:startTime, '02:40:00')" +
+                        "  AND a.appointmentTime < :maxTime " +
+                        "  AND a.appointmentTime > :minTime" +
                         ")")
         List<Veterinarian> findAllAvailableVeterinarians(@Param("date") LocalDate date,
-                        @Param("startTime") LocalTime startTime,
-                        @Param("endTime") LocalTime endTime);
+                        @Param("minTime") LocalTime minTime,
+                        @Param("maxTime") LocalTime maxTime);
 }
