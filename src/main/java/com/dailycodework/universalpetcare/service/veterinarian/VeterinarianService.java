@@ -7,7 +7,6 @@ import com.dailycodework.universalpetcare.model.Veterinarian;
 import com.dailycodework.universalpetcare.repository.ReviewRepository;
 import com.dailycodework.universalpetcare.repository.UserRepository;
 import com.dailycodework.universalpetcare.repository.VeterinarianRepository;
-import com.dailycodework.universalpetcare.service.review.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,15 +21,17 @@ import java.util.stream.Collectors;
 public class VeterinarianService implements IVeterinarianService {
     private final VeterinarianRepository veterinarianRepository;
     private final EntityConverter<Veterinarian, UserDto> entityConverter;
-    private final ReviewService reviewService;
+    // Removed unused reviewService
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
 
     @Override
     public List<UserDto> getAllVeterinariansWithDetails() {
         List<Veterinarian> veterinarians = userRepository.findAllByUserType("VET");
+        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
+
         return veterinarians.stream()
-                .map(this::mapVeterinarianToUserDto)
+                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
                 .toList();
     }
 
@@ -42,8 +43,10 @@ public class VeterinarianService implements IVeterinarianService {
     @Override
     public List<UserDto> findAvailableVetsForAppointment(String specialization, LocalDate date, LocalTime time) {
         List<Veterinarian> filteredVets = getAvailableVeterinarians(specialization, date, time);
+        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
+
         return filteredVets.stream()
-                .map(this::mapVeterinarianToUserDto)
+                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
                 .toList();
     }
 
@@ -56,24 +59,33 @@ public class VeterinarianService implements IVeterinarianService {
 
     }
 
-    private UserDto mapVeterinarianToUserDto(Veterinarian veterinarian) {
+    // Helper to fetch and map stats
+    private Map<Long, ReviewStatsDto> getReviewStatsMap() {
+        List<Object[]> stats = reviewRepository.getReviewStats();
+        return stats.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0], // vetId
+                        row -> new ReviewStatsDto((Long) row[1], (Double) row[2]) // count, avg
+                ));
+    }
+
+    // Inner record or class for stats
+    private record ReviewStatsDto(Long totalReviewers, Double averageRating) {
+    }
+
+    private UserDto mapVeterinarianToUserDto(Veterinarian veterinarian, Map<Long, ReviewStatsDto> statsMap) {
         UserDto userDto = entityConverter.mapEntityToDto(veterinarian, UserDto.class);
-        double averageRating = reviewService.getAverageRatingForVet(veterinarian.getId());
-        Long totalReviewer = reviewRepository.countByVeterinarianId(veterinarian.getId());
-        userDto.setAverageRating(averageRating);
-        userDto.setTotalReviewers(totalReviewer);
+
+        // OPTIMIZATION: Fetch from Map instead of DB
+        ReviewStatsDto stats = statsMap.getOrDefault(veterinarian.getId(), new ReviewStatsDto(0L, 0.0));
+
+        userDto.setAverageRating(stats.averageRating());
+        userDto.setTotalReviewers(stats.totalReviewers());
 
         // OPTIMIZATION: Do NOT load full photo bytes for list view.
         // Frontend should fetch by ID or URL.
         if (veterinarian.getPhoto() != null) {
             userDto.setPhotoId(veterinarian.getPhoto().getId());
-            // try {
-            // byte[] photoBytes =
-            // photoService.getImageData(veterinarian.getPhoto().getId());
-            // userDto.setPhoto(photoBytes);
-            // } catch (SQLException e) {
-            // throw new RuntimeException(e.getMessage());
-            // }
         }
 
         return userDto;
