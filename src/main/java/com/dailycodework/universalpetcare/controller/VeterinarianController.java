@@ -37,6 +37,12 @@ public class VeterinarianController {
         return ResponseEntity.ok(new ApiResponse(FeedBackMessage.RESOURCE_FOUND, allVeterinarians));
     }
 
+    @GetMapping(UrlMapping.GET_ALL_VETERINARIANS_INTERNAL)
+    public ResponseEntity<ApiResponse> getAllVeterinariansInternal() {
+        List<UserDto> allVeterinarians = veterinarianService.getAllVeterinariansWithDetails();
+        return ResponseEntity.ok(new ApiResponse(FeedBackMessage.RESOURCE_FOUND, allVeterinarians));
+    }
+
     @GetMapping(UrlMapping.SEARCH_VETERINARIAN_FOR_APPOINTMENT)
     public ResponseEntity<ApiResponse> searchVeterinariansForAppointment(
             @RequestParam(value = "date", required = false) LocalDate date,
