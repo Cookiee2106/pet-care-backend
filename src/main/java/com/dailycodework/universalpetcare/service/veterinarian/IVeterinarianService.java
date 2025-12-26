@@ -8,7 +8,12 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
+import com.dailycodework.universalpetcare.dto.VetSummaryDto;
+import org.springframework.data.domain.Page;
+
 public interface IVeterinarianService {
+    Page<VetSummaryDto> getAllVeterinarians(int page, int size);
+
     List<UserDto> getAllVeterinariansWithDetails();
 
     List<String> getSpecializations();

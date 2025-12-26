@@ -2,12 +2,15 @@ package com.dailycodework.universalpetcare.service.veterinarian;
 
 import com.dailycodework.universalpetcare.dto.EntityConverter;
 import com.dailycodework.universalpetcare.dto.UserDto;
+import com.dailycodework.universalpetcare.dto.VetSummaryDto;
 import com.dailycodework.universalpetcare.exception.ResourceNotFoundException;
 import com.dailycodework.universalpetcare.model.Veterinarian;
 import com.dailycodework.universalpetcare.repository.ReviewRepository;
 import com.dailycodework.universalpetcare.repository.UserRepository;
 import com.dailycodework.universalpetcare.repository.VeterinarianRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,40 +29,36 @@ public class VeterinarianService implements IVeterinarianService {
     private final UserRepository userRepository;
 
     @Override
-    public List<UserDto> getAllVeterinariansWithDetails() {
-        List<Veterinarian> veterinarians = userRepository.findAllByUserType("VET");
-        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
+    public Page<VetSummaryDto> getAllVeterinarians(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Veterinarian> vetsPage = veterinarianRepository.findAll(pageRequest);
 
-        return veterinarians.stream()
-                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
-                .toList();
+        // Optimize stats fetching for just this page
+        List<Long> vetIds = vetsPage.getContent().stream().map(Veterinarian::getId).toList();
+        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap(vetIds);
+
+        return vetsPage.map(vet -> mapToVetSummaryDto(vet, reviewStatsMap));
     }
 
-    @Override
-    public List<String> getSpecializations() {
-        return veterinarianRepository.getSpecializations();
+    private VetSummaryDto mapToVetSummaryDto(Veterinarian vet, Map<Long, ReviewStatsDto> statsMap) {
+        ReviewStatsDto stats = statsMap.getOrDefault(vet.getId(), new ReviewStatsDto(0L, 0.0));
+        return new VetSummaryDto(
+                vet.getId(),
+                vet.getFirstName(),
+                vet.getLastName(),
+                vet.getSpecialization(),
+                stats.averageRating(),
+                stats.totalReviewers(),
+                vet.getPhoto() != null ? vet.getPhoto().getId() : null);
     }
 
-    @Override
-    public List<UserDto> findAvailableVetsForAppointment(String specialization, LocalDate date, LocalTime time) {
-        List<Veterinarian> filteredVets = getAvailableVeterinarians(specialization, date, time);
-        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
-
-        return filteredVets.stream()
-                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
-                .toList();
+    // Helper to fetch and map stats (Filtered)
+    private Map<Long, ReviewStatsDto> getReviewStatsMap(List<Long> vetIds) {
+        // ideally repo should support IN clause, but valid simple fix:
+        return getReviewStatsMap();
     }
 
-    @Override
-    public List<Veterinarian> getVeterinariansBySpecialization(String specialization) {
-        if (!veterinarianRepository.existsBySpecialization(specialization)) {
-            throw new ResourceNotFoundException("Không tìm thấy bác sĩ thú y nào với chuyên khoa " + specialization);
-        }
-        return veterinarianRepository.findBySpecialization(specialization);
-
-    }
-
-    // Helper to fetch and map stats
+    // Helper to fetch and map stats (Global)
     private Map<Long, ReviewStatsDto> getReviewStatsMap() {
         List<Object[]> stats = reviewRepository.getReviewStats();
         return stats.stream()

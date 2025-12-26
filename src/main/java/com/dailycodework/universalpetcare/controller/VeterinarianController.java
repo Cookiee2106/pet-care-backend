@@ -1,18 +1,19 @@
 package com.dailycodework.universalpetcare.controller;
 
 import com.dailycodework.universalpetcare.dto.UserDto;
+import com.dailycodework.universalpetcare.dto.VetSummaryDto;
 import com.dailycodework.universalpetcare.exception.ResourceNotFoundException;
 import com.dailycodework.universalpetcare.response.ApiResponse;
-import com.dailycodework.universalpetcare.service.appointment.AppointmentService;
-import com.dailycodework.universalpetcare.service.appointment.IAppointmentService;
 import com.dailycodework.universalpetcare.service.veterinarian.IVeterinarianService;
-import com.dailycodework.universalpetcare.service.veterinarian.VeterinarianService;
 import com.dailycodework.universalpetcare.utils.FeedBackMessage;
 import com.dailycodework.universalpetcare.utils.UrlMapping;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -29,10 +30,11 @@ public class VeterinarianController {
     private final IVeterinarianService veterinarianService;
 
     @GetMapping(UrlMapping.GET_ALL_VETERINARIANS)
-    public ResponseEntity<ApiResponse> getAllVeterinarians() {
-        List<UserDto> allVeterinarians = veterinarianService.getAllVeterinariansWithDetails();
+    public ResponseEntity<ApiResponse> getAllVeterinarians(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<VetSummaryDto> allVeterinarians = veterinarianService.getAllVeterinarians(page, size);
         return ResponseEntity.ok(new ApiResponse(FeedBackMessage.RESOURCE_FOUND, allVeterinarians));
-
     }
 
     @GetMapping(UrlMapping.SEARCH_VETERINARIAN_FOR_APPOINTMENT)
@@ -43,8 +45,6 @@ public class VeterinarianController {
         try {
             List<UserDto> availableVeterinarians;
             if (specialization == null || specialization.isEmpty()) {
-                // If specialization is empty/null, find all vets and filter by date/time if
-                // needed
                 availableVeterinarians = veterinarianService.findAvailableVetsForAppointment(specialization, date,
                         time);
             } else {
