@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class VeterinarianService implements IVeterinarianService {
     private final VeterinarianRepository veterinarianRepository;
     private final EntityConverter<Veterinarian, UserDto> entityConverter;
-    // Removed unused reviewService
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
 
@@ -40,6 +39,51 @@ public class VeterinarianService implements IVeterinarianService {
         return vetsPage.map(vet -> mapToVetSummaryDto(vet, reviewStatsMap));
     }
 
+    @Override
+    public List<UserDto> getAllVeterinariansWithDetails() {
+        List<Veterinarian> veterinarians = userRepository.findAllByUserType("VET");
+        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
+
+        return veterinarians.stream()
+                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
+                .toList();
+    }
+
+    @Override
+    public List<String> getSpecializations() {
+        return veterinarianRepository.getSpecializations();
+    }
+
+    @Override
+    public List<UserDto> findAvailableVetsForAppointment(String specialization, LocalDate date, LocalTime time) {
+        List<Veterinarian> filteredVets = getAvailableVeterinarians(specialization, date, time);
+        Map<Long, ReviewStatsDto> reviewStatsMap = getReviewStatsMap();
+
+        return filteredVets.stream()
+                .map(vet -> mapVeterinarianToUserDto(vet, reviewStatsMap))
+                .toList();
+    }
+
+    @Override
+    public List<Veterinarian> getVeterinariansBySpecialization(String specialization) {
+        if (!veterinarianRepository.existsBySpecialization(specialization)) {
+            throw new ResourceNotFoundException("Không tìm thấy bác sĩ thú y nào với chuyên khoa " + specialization);
+        }
+        return veterinarianRepository.findBySpecialization(specialization);
+    }
+
+    @Override
+    public List<Map<String, Object>> aggregateVetsBySpecialization() {
+        List<Object[]> results = veterinarianRepository.countVetsBySpecialization();
+        return results.stream()
+                .map(result -> Map.of("specialization", result[0], "count", result[1]))
+                .collect(Collectors.toList());
+    }
+
+    // ==========================================
+    // PRIVATE HELPERS
+    // ==========================================
+
     private VetSummaryDto mapToVetSummaryDto(Veterinarian vet, Map<Long, ReviewStatsDto> statsMap) {
         ReviewStatsDto stats = statsMap.getOrDefault(vet.getId(), new ReviewStatsDto(0L, 0.0));
         return new VetSummaryDto(
@@ -52,42 +96,32 @@ public class VeterinarianService implements IVeterinarianService {
                 vet.getPhoto() != null ? vet.getPhoto().getId() : null);
     }
 
-    // Helper to fetch and map stats (Filtered)
+    private UserDto mapVeterinarianToUserDto(Veterinarian veterinarian, Map<Long, ReviewStatsDto> statsMap) {
+        UserDto userDto = entityConverter.mapEntityToDto(veterinarian, UserDto.class);
+        ReviewStatsDto stats = statsMap.getOrDefault(veterinarian.getId(), new ReviewStatsDto(0L, 0.0));
+        userDto.setAverageRating(stats.averageRating());
+        userDto.setTotalReviewers(stats.totalReviewers());
+
+        if (veterinarian.getPhoto() != null) {
+            userDto.setPhotoId(veterinarian.getPhoto().getId());
+        }
+        return userDto;
+    }
+
     private Map<Long, ReviewStatsDto> getReviewStatsMap(List<Long> vetIds) {
-        // ideally repo should support IN clause, but valid simple fix:
+        // Simple implementation reusing global fetch for now
         return getReviewStatsMap();
     }
 
-    // Helper to fetch and map stats (Global)
     private Map<Long, ReviewStatsDto> getReviewStatsMap() {
         List<Object[]> stats = reviewRepository.getReviewStats();
         return stats.stream()
                 .collect(Collectors.toMap(
-                        row -> (Long) row[0], // vetId
-                        row -> new ReviewStatsDto((Long) row[1], (Double) row[2]) // count, avg
-                ));
+                        row -> (Long) row[0],
+                        row -> new ReviewStatsDto((Long) row[1], (Double) row[2])));
     }
 
-    // Inner record or class for stats
     private record ReviewStatsDto(Long totalReviewers, Double averageRating) {
-    }
-
-    private UserDto mapVeterinarianToUserDto(Veterinarian veterinarian, Map<Long, ReviewStatsDto> statsMap) {
-        UserDto userDto = entityConverter.mapEntityToDto(veterinarian, UserDto.class);
-
-        // OPTIMIZATION: Fetch from Map instead of DB
-        ReviewStatsDto stats = statsMap.getOrDefault(veterinarian.getId(), new ReviewStatsDto(0L, 0.0));
-
-        userDto.setAverageRating(stats.averageRating());
-        userDto.setTotalReviewers(stats.totalReviewers());
-
-        // OPTIMIZATION: Do NOT load full photo bytes for list view.
-        // Frontend should fetch by ID or URL.
-        if (veterinarian.getPhoto() != null) {
-            userDto.setPhotoId(veterinarian.getPhoto().getId());
-        }
-
-        return userDto;
     }
 
     private List<Veterinarian> getAvailableVeterinarians(String specialization, LocalDate date, LocalTime time) {
@@ -102,45 +136,25 @@ public class VeterinarianService implements IVeterinarianService {
                 return veterinarianRepository.findAvailableVeterinarians(specialization, date, minTime, maxTime);
             }
         }
-        // Fallback or if date/time not provided, just return vets by specialization or
-        // all
         if (specialization == null || specialization.isEmpty()) {
             return veterinarianRepository.findAll();
         } else {
+            // Calling the method defined in this class
             return getVeterinariansBySpecialization(specialization);
         }
     }
 
     private LocalTime calculateMinTime(LocalTime reqStartTime) {
-        // reqStartTime - 2h 40m
         LocalTime minTime = reqStartTime.minusHours(2).minusMinutes(40);
-        // If minTime > reqStartTime (wrapped around midnight to yesterday), clamp to
-        // 00:00
-        if (minTime.isAfter(reqStartTime)) {
-            return LocalTime.MIN; // 00:00
-        }
+        if (minTime.isAfter(reqStartTime))
+            return LocalTime.MIN;
         return minTime;
     }
 
     private LocalTime calculateMaxTime(LocalTime reqEndTime) {
-        // reqEndTime + 1h
         LocalTime maxTime = reqEndTime.plusHours(1);
-        // If maxTime < reqEndTime (wrapped around midnight to tomorrow), clamp to MAX
-        if (maxTime.isBefore(reqEndTime)) {
-            return LocalTime.MAX; // 23:59:59.999
-        }
+        if (maxTime.isBefore(reqEndTime))
+            return LocalTime.MAX;
         return maxTime;
     }
-
-    // OPTIMIZATION: Removed isVetAvailable and doesAppointmentOverLap as logic is
-    // moved to DB query
-
-    @Override
-    public List<Map<String, Object>> aggregateVetsBySpecialization() {
-        List<Object[]> results = veterinarianRepository.countVetsBySpecialization();
-        return results.stream()
-                .map(result -> Map.of("specialization", result[0], "count", result[1]))
-                .collect(Collectors.toList());
-    }
-
 }
