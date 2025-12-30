@@ -1,5 +1,7 @@
 package com.dailycodework.universalpetcare.service.user;
 
+import com.dailycodework.universalpetcare.enums.AppointmentStatus;
+
 import com.dailycodework.universalpetcare.dto.AppointmentDto;
 import com.dailycodework.universalpetcare.dto.EntityConverter;
 import com.dailycodework.universalpetcare.dto.ReviewDto;
@@ -76,6 +78,18 @@ public class UserService implements IUserService {
                     List<Review> reviews = new ArrayList<>(reviewRepository.findAllByUserId(userId));
                     reviewRepository.deleteAll(reviews);
                     List<Appointment> appointments = new ArrayList<>(appointmentRepository.findAllByUserId(userId));
+
+                    boolean hasActiveAppointments = appointments.stream()
+                            .anyMatch(app -> app.getStatus() == AppointmentStatus.WAITING_FOR_APPROVAL ||
+                                    app.getStatus() == AppointmentStatus.APPROVED ||
+                                    app.getStatus() == AppointmentStatus.ON_GOING ||
+                                    app.getStatus() == AppointmentStatus.UP_COMING);
+
+                    if (hasActiveAppointments) {
+                        throw new RuntimeException(
+                                "Không thể xóa tài khoản này vì đang có lịch hẹn chờ duyệt hoặc chưa hoàn thành.");
+                    }
+
                     appointmentRepository.deleteAll(appointments);
                     userRepository.deleteById(userId);
 
